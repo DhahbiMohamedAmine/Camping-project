@@ -144,6 +144,7 @@ router.post("/login", (req, res) => {
 
 
 // Request password reset
+// Request password reset
 router.post("/reset-password-request", (req, res) => {
   const { email } = req.body;
 
@@ -161,13 +162,21 @@ router.post("/reset-password-request", (req, res) => {
       return res.status(404).send({ error: 'User not found' });
     }
 
-    // Send the reset email with a simple instruction
+    const user = result[0];
+
+    // Generate a password reset token
+    const resetToken = jwt.sign({ email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+
+    // Send the reset email with a link to the frontend reset page
+    const resetLink = `http://localhost:3001/reset-password?token=${resetToken}`;
     const mailOptions = {
       from: 'hamadhahbi2020@gmail.com',
       to: email,
       subject: 'Password Reset',
       html: `<h2>Password Reset Request</h2>
-             <p>To reset your password, please reply to this email with your new password.</p>`,
+             <p>Click the link below to reset your password:</p>
+             <a href="${resetLink}">Reset Password</a>
+             <p>If you did not request this, please ignore this email.</p>`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -179,26 +188,36 @@ router.post("/reset-password-request", (req, res) => {
   });
 });
 
+
+// Reset password
 // Reset password
 router.post("/reset-password", async (req, res) => {
-  const { email, newPassword } = req.body;
+  const { token, newPassword } = req.body;
 
-  if (!email || !newPassword) {
-    return res.status(400).send({ error: "Email and new password are required" });
+  if (!token || !newPassword) {
+    return res.status(400).send({ error: "Token and new password are required" });
   }
 
-  // Hash the new password
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  // Update the user's password in the database
-  const sql = 'UPDATE user SET password = ? WHERE email = ?';
-  db.query(sql, [hashedPassword, email], (err: any, result: any) => {
+  // Verify the token
+  jwt.verify(token, JWT_SECRET, async (err: any, decoded: any) => {
     if (err) {
-      return res.status(500).send({ error: 'Database update failed' });
+      return res.status(400).send({ error: 'Invalid or expired token' });
     }
 
-    res.send({ message: 'Password has been reset successfully' });
+    const { email } = decoded;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password in the database
+    const sql = 'UPDATE user SET password = ? WHERE email = ?';
+    db.query(sql, [hashedPassword, email], (err: any, result: any) => {
+      if (err) {
+        return res.status(500).send({ error: 'Database update failed' });
+      }
+
+      res.send({ message: 'Password has been reset successfully' });
+    });
   });
 });
+
 
 export default router;

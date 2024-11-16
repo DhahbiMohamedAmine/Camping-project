@@ -26,7 +26,7 @@ db.connect((err: Error ) => {
   if (err) {
     throw err;
   }
-  console.log('MySQL connected ..');
+  console.log('Oracle connected ..');
 });
 
 app.listen(3000, () => {

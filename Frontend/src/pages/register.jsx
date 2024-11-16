@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"; // to navigate after successful reg
 import '../app/globals.css'; // Adjust path if needed
 
 export default function Register() {
-  const [type, setType] = useState("");
+  const [type, setType] = useState("voyageur");
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [email, setEmail] = useState("");
@@ -46,7 +46,6 @@ export default function Register() {
       const data = await response.json();
       if (data.message) {
         // Redirect or show success message
-        alert(data.message);
         router.push("/login");  // Redirect to login page after successful registration
       }
     } catch (error) {
@@ -63,18 +62,7 @@ export default function Register() {
         {error && <div className="text-red-500 mb-4">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700">Type</label>
-            <input
-              type="text"
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-2 mt-1"
-              placeholder="Enter your type"
-              required
-            />
-          </div>
+          
 
           <div>
             <label htmlFor="nom" className="block text-sm font-medium text-gray-700">Nom</label>

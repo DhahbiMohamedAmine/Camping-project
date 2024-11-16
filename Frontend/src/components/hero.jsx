@@ -6,9 +6,9 @@ export default function Hero({ setFilteredTrips }) {
   const [prixMax, setPrixMax] = useState("");
   const [dateDepart, setDateDepart] = useState("");
   const [dateArrivee, setDateArrivee] = useState("");
-  const [type, setType] = useState("");
+  const [type, setType] = useState("");  // Changed to use a select for type
   const [lieuArrive, setLieuArrive] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false); 
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
@@ -33,15 +33,23 @@ export default function Hero({ setFilteredTrips }) {
     toggleFilter(); 
   };
 
+  const handleResetFilters = () => {
+    setPrixMin("");
+    setPrixMax("");
+    setDateDepart("");
+    setDateArrivee("");
+    setType("");  // Reset the type selection
+    setLieuArrive("");
+    fetchFilteredTrips();
+  };
+
   return (
     <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-red-500 flex py-4 flex-col items-center justify-around text-center w-full">
       <h1 className="text-white text-4xl font-bold my-4">Escape Your Comfort Zone.</h1>
       <h2 className="text-white text-xl mt-2 my-4">Grab your stuff and let's get lost.</h2>
 
-      
-
       {isFilterOpen && (
-        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-10">
+        <div className="absolute top-20 left-0 right-0 bottom-0 bg-gray-900 bg-opacity-50 flex justify-center items-center z-10">
           <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
             <h3 className="text-xl font-bold mb-6 text-primaryGreen">Apply Filters</h3>
 
@@ -89,13 +97,15 @@ export default function Hero({ setFilteredTrips }) {
               {/* Type & Destination Section */}
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">Type of Trip</label>
-                <input
-                  type="text"
-                  placeholder="Type (e.g. Adventure, Relax)"
+                <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
                   className="w-full border rounded py-2 px-4 mb-4"
-                />
+                >
+                  <option value="">Select Trip Type</option>
+                  <option value="Camping">Camping</option>
+                  <option value="Excursion">Excursion</option>
+                </select>
 
                 <label className="block text-gray-700 font-semibold mb-2">Destination</label>
                 <input
@@ -111,13 +121,19 @@ export default function Hero({ setFilteredTrips }) {
             <div className="flex justify-between mt-4">
               <button
                 onClick={handleApplyFilter}
-                className="w-full bg-primaryGreen p-3 rounded text-white font-semibold mb-2 hover:bg-primaryGreenDark"
+                className="w-full bg-primaryGreen p-2 rounded text-white font-semibold mb-2 hover:bg-primaryGreenDark"
               >
                 Apply Filters
               </button>
               <button
+                onClick={handleResetFilters} // Reset button
+                className="w-full bg-yellow-500 p-2 rounded text-white mb-2 hover:bg-yellow-600 "
+              >
+                Reset Filters
+              </button>
+              <button
                 onClick={toggleFilter}
-                className="w-full bg-red-500 p-3 rounded text-white mb-2 hover:bg-red-600"
+                className="w-full bg-red-500 p-2 rounded text-white mb-2 hover:bg-red-600"
               >
                 Close
               </button>
@@ -125,7 +141,8 @@ export default function Hero({ setFilteredTrips }) {
           </div>
         </div>
       )}
-      
+
+      {/* Filter Button */}
       <button
         onClick={toggleFilter}
         className="fixed bottom-4 right-4 bg-primaryGreen p-4 rounded-full text-white shadow-lg hover:bg-primaryGreenDark z-20"

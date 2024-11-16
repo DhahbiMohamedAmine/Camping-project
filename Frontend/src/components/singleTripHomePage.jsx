@@ -76,7 +76,7 @@ export default function SingleTripHomePage({ trips }) {
                     d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                   />
                 </svg>
-                <p className="text-lg font-normal mx-4">{trip.date_depart}</p>
+                <p className="text-lg font-normal mx-4">{new Date(trip.date_depart).toLocaleDateString()}</p>
               </div>
             </div>
             <div className="flex justify-between items-center mt-4">

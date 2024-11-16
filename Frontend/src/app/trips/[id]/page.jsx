@@ -84,7 +84,6 @@ export default function TripDetailsPage() {
       const result = await response.json();
       if (response.ok) {
         setIsRegistered(true);
-        alert("You have successfully registered for the trip!");
       } else {
         alert(result.error || "Failed to register for the trip.");
       }
@@ -118,7 +117,6 @@ export default function TripDetailsPage() {
 
         if (deleteResponse.ok) {
           setIsRegistered(false);
-          alert("Your reservation has been canceled.");
         } else {
           const errorData = await deleteResponse.json();
           alert(errorData.error || "Failed to cancel the reservation.");

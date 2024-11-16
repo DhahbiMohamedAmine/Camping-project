@@ -70,7 +70,7 @@ export default function Navbar() {
                 Logout
               </button>
               <button
-                onClick={() => router.push("/profile")} // Redirect to user profile page
+                onClick={() => router.push(`/profile/${user.id}`)} // Redirect to user profile page
                 className="p-2 rounded-lg bg-white text-primaryGreen hover:bg-gray-100 transition duration-300"
               >
                 <FaUserCircle size={24} /> {/* Display user icon */}

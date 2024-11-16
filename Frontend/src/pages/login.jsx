@@ -45,8 +45,6 @@ export default function Login() {
 
         // Save token to localStorage (optional)
         localStorage.setItem("token", data.token);
-
-        alert(data.message);  // Show success message
         router.push("/"); // Redirect to home/dashboard
       }
     } catch (error) {
@@ -73,6 +71,7 @@ export default function Login() {
               className="w-full border border-gray-300 rounded-lg p-2 mt-1"
               placeholder="Enter your email"
               required
+              autocomplete="off"
             />
           </div>
 
@@ -86,6 +85,8 @@ export default function Login() {
               className="w-full border border-gray-300 rounded-lg p-2 mt-1"
               placeholder="Enter your password"
               required
+              
+              autocomplete="new-password"
             />
           </div>
 
@@ -103,6 +104,11 @@ export default function Login() {
             Don't have an account?{" "}
             <a href="/register" className="text-blue-500 hover:underline">
               Register here
+            </a>
+          </p>
+          <p className="mt-2">
+            <a href="/request-reset-password" className="text-blue-500 hover:underline">
+              Forgot your password?
             </a>
           </p>
         </div>
