@@ -147,4 +147,45 @@ router.delete("/delete/:id", (req: any, res: any) => {
   });
 });
 
+// Fetch reservation history for a specific user
+router.get("/history/:userId", (req: any, res: any) => {
+  const userId = req.params.userId;
+  console.log("Received User ID:", userId); // Debug log
+
+  const sql = `
+    SELECT 
+      r.id AS reservation_id, 
+      r.date_reservation, 
+      r.status,
+      t.id AS trip_id, 
+      t.lieu_depart, 
+      t.lieu_destination, 
+      t.date_depart, 
+      t.date_destination, 
+      t.prix, 
+      t.type
+    FROM 
+      reservation r
+    JOIN 
+      trip t ON r.trip_id = t.id
+    WHERE 
+      r.user_id = ?
+    ORDER BY 
+      r.date_reservation DESC
+  `;
+
+  db.query(sql, [userId], (err: any, result: any) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).send({ error: 'Database query failed' });
+    }
+    console.log("Result Length:", result.length); // Debug log
+    if (result.length === 0) {
+      return res.status(404).send({ message: 'No reservations found for this user' });
+    }
+    res.send(result);
+  });
+});
+
+
 export default router;

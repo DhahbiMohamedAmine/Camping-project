@@ -1,15 +1,28 @@
-"use client";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { FaMapMarkerAlt, FaPlane, FaCalendarAlt, FaMoneyBillWave } from "react-icons/fa"; // Import icons
+'use client';
+
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from 'next/navigation';
+import { FaMapMarkerAlt, FaPlane, FaCalendarAlt, FaMoneyBillWave, FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
 
 export default function TripDetailsPage() {
-  const { id } = useParams();
-  const [trip, setTrip] = useState(null);
-  const [user, setUser] = useState(null); // To manage user state
-  const [isRegistered, setIsRegistered] = useState(false); // To track if user is already registered
+  const params = useParams();
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
-  // Get user data from localStorage
+  const id = params?.id;
+
+  const [trip, setTrip] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [userRating, setUserRating] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setIsClient(true);
+    }
+  }, []);
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -17,7 +30,20 @@ export default function TripDetailsPage() {
     }
   }, []);
 
-  // Fetch trip details
+  const fetchAverageRating = useCallback(async () => {
+    if (id) {
+      try {
+        const response = await fetch(`http://localhost:3000/trip/rating/${id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAverageRating(data.average_rating || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching average rating:", error);
+      }
+    }
+  }, [id]);
+
   useEffect(() => {
     if (id) {
       const fetchTripDetails = async () => {
@@ -26,6 +52,7 @@ export default function TripDetailsPage() {
           if (response.ok) {
             const data = await response.json();
             setTrip(data);
+            fetchAverageRating(); // Fetch rating after trip details
           } else {
             console.error("Failed to fetch trip details");
           }
@@ -33,31 +60,74 @@ export default function TripDetailsPage() {
           console.error("Error fetching trip details:", error);
         }
       };
+
       fetchTripDetails();
     }
-  }, [id]);
+  }, [id, fetchAverageRating]);
 
-  // Check if user has already registered for the trip
   useEffect(() => {
     if (user && trip) {
-      const checkRegistration = async () => {
+      const fetchUserRating = async () => {
         try {
-          const response = await fetch(`http://localhost:3000/reservation/get`, {
-            method: "GET",
-          });
-          const reservations = await response.json();
-          const userReservation = reservations.find(
-            (reservation) => reservation.user_id === user.id && reservation.trip_id === trip.id
-          );
-          setIsRegistered(!!userReservation);
+          const response = await fetch(`http://localhost:3000/trip/ratings/${trip.id}/${user.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserRating(data.rating || 0);
+          }
         } catch (error) {
-          console.error("Error checking registration:", error);
+          console.error("Error fetching user rating:", error);
         }
       };
 
-      checkRegistration();
+      fetchUserRating();
     }
   }, [user, trip]);
+
+  const handleRating = async (ratingValue) => {
+    if (!user) {
+      alert("You must be logged in to rate a trip.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3000/trip/rate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trip_id: trip.id,
+          user_id: user.id,
+          rating: ratingValue,
+        }),
+      });
+
+      if (response.ok) {
+        setUserRating(ratingValue);
+        await fetchAverageRating(); // Fetch the updated average rating
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to submit rating.");
+      }
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      alert("There was an error submitting your rating.");
+    }
+  };
+
+  const renderStars = (rating) => {
+    let stars = [];
+    for (let i = 1; i <= 5; i++) {
+      if (rating >= i) {
+        stars.push(<FaStar key={i} className="text-yellow-400" />);
+      } else if (rating >= i - 0.5) {
+        stars.push(<FaStarHalfAlt key={i} className="text-yellow-400" />);
+      } else {
+        stars.push(<FaRegStar key={i} className="text-yellow-400" />);
+      }
+    }
+    return stars;
+  };
 
   const handleRegister = async () => {
     if (!user) {
@@ -92,6 +162,29 @@ export default function TripDetailsPage() {
       alert("There was an error registering for the trip.");
     }
   };
+
+
+  useEffect(() => {
+    if (user && trip) {
+      const checkRegistration = async () => {
+        try {
+          const response = await fetch(`http://localhost:3000/reservation/get`, {
+            method: "GET",
+          });
+          const reservations = await response.json();
+          const userReservation = reservations.find(
+            (reservation) => reservation.user_id === user.id && reservation.trip_id === trip.id
+          );
+          setIsRegistered(!!userReservation);
+        } catch (error) {
+          console.error("Error checking registration:", error);
+        }
+      };
+
+      checkRegistration();
+    }
+  }, [user, trip]);
+
 
   const handleCancel = async () => {
     if (!user || !trip) return;
@@ -130,7 +223,7 @@ export default function TripDetailsPage() {
     }
   };
 
-  if (!trip) {
+  if (!trip || !isClient) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-lg font-semibold text-gray-600">Loading trip details...</p>
@@ -140,12 +233,15 @@ export default function TripDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Hero Section */}
+      {/* Background Image */}
       <div className="relative mx-auto max-w-4xl h-56 sm:h-64 md:h-72 lg:h-80 bg-cover bg-center rounded-lg overflow-hidden shadow-md">
         <div
           className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
           style={{
             backgroundImage: `url(${trip.photo || "https://via.placeholder.com/150"})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         >
           <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-bold text-center p-4">
@@ -154,13 +250,12 @@ export default function TripDetailsPage() {
         </div>
       </div>
 
-      {/* Trip Details Section */}
+      {/* Trip Details */}
       <div className="max-w-4xl mx-auto p-6 sm:p-10">
         <div className="bg-white p-8 rounded-lg shadow-lg space-y-8">
           <p className="text-xl text-gray-700 leading-relaxed">{trip.description}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Destination */}
             <div className="flex items-center space-x-3">
               <FaMapMarkerAlt className="text-primaryGreen text-2xl" />
               <div>
@@ -169,7 +264,6 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* Type of Trip */}
             <div className="flex items-center space-x-3">
               <FaPlane className="text-primaryGreen text-2xl" />
               <div>
@@ -178,18 +272,14 @@ export default function TripDetailsPage() {
               </div>
             </div>
 
-            {/* Departure Date */}
             <div className="flex items-center space-x-3">
               <FaCalendarAlt className="text-primaryGreen text-2xl" />
               <div>
                 <strong className="block text-gray-800">Departure Date:</strong>
-                <span className="text-gray-600">
-                  {new Date(trip.date_depart).toLocaleDateString()}
-                </span>
+                <span className="text-gray-600">{new Date(trip.date_depart).toLocaleDateString()}</span>
               </div>
             </div>
 
-            {/* Price */}
             <div className="flex items-center space-x-3">
               <FaMoneyBillWave className="text-primaryGreen text-2xl" />
               <div>
@@ -199,8 +289,37 @@ export default function TripDetailsPage() {
             </div>
           </div>
 
-          {/* Register / Cancel Button */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          {/* Rating Section */}
+          <div>
+            <div className="flex items-center space-x-2 mb-4">
+              <span className="text-lg font-semibold">Average Rating:</span>
+              <div className="flex space-x-1">{renderStars(averageRating)}</div>
+            </div>
+
+            {user && (
+              <div>
+                <span className="text-lg font-semibold">Your Rating:</span>
+                <div className="flex space-x-1 mb-4">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => handleRating(rating)}
+                      disabled={userRating > 0}
+                      className={`${
+                        userRating >= rating ? "text-yellow-400" : "text-gray-400"
+                      } hover:text-yellow-400`}
+                    >
+                      <FaStar />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Register and Cancel Buttons */}
+          <div className="text-center space-y-6">
+            {/* Register Button */}
             {!isRegistered ? (
               <button
                 onClick={handleRegister}
@@ -209,25 +328,25 @@ export default function TripDetailsPage() {
                 Register for this trip
               </button>
             ) : (
-              <div className="w-full sm:w-auto">
-                <p className="text-lg text-green-600 font-semibold mb-2">You are already registered for this trip!</p>
+              <div className="w-full sm:w-auto space-y-2">
+                <p className="text-lg text-gray-600 mb-2">You are already registered for this trip.</p>
                 <button
                   onClick={handleCancel}
-                  className="w-full sm:w-auto px-6 py-3 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition duration-300 ease-in-out transform hover:scale-105"
+                  className="w-full sm:w-auto px-6 py-3 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition duration-300 ease-in-out transform hover:scale-105"
                 >
                   Cancel Reservation
                 </button>
               </div>
             )}
-          </div>
 
-          {/* Back Button */}
-          <button
-            onClick={() => window.history.back()}
-            className="w-full sm:w-auto px-6 py-3 rounded-md bg-primaryGreen text-white font-semibold hover:bg-primaryGreenDark transition duration-300 ease-in-out transform hover:scale-105 mt-4"
-          >
-            Back to Trips
-          </button>
+            {/* Back to Trips Button */}
+            <button
+              onClick={() => router.back()}
+              className="w-full sm:w-auto px-6 py-3 rounded-md bg-primaryGreen text-white font-semibold hover:bg-primaryGreenDark transition duration-300 ease-in-out transform hover:scale-105"
+            >
+              Back to Trips
+            </button>
+          </div>
         </div>
       </div>
     </div>

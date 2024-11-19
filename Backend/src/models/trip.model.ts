@@ -7,5 +7,6 @@ export interface Trip {
     date_depart: Date;
     date_destination: Date;
     prix: number;
+    average_rating?: number;
   }
   

@@ -112,4 +112,71 @@ router.get("/filtrer", (req: any, res: any) => {
 });
 
 
+// Submit rating for a trip
+router.post("/rate", (req: any, res: any) => {
+  const { trip_id, user_id, rating } = req.body;
+
+  if (rating < 1 || rating > 5) {
+    return res.status(400).send({ error: 'Rating must be between 1 and 5' });
+  }
+
+  // Insert the rating into the database
+  const sql = 'INSERT INTO ratings (trip_id, user_id, rating) VALUES (?, ?, ?)';
+  db.query(sql, [trip_id, user_id, rating], (err: any) => {
+    if (err) {
+      return res.status(500).send({ error: err +'Database query failed' });
+    }
+
+    // Recalculate the average rating for the trip
+    const updateAvgRatingSql = `
+      SELECT AVG(rating) as average_rating FROM ratings WHERE trip_id = ?
+    `;
+    db.query(updateAvgRatingSql, [trip_id], (err: any, result: any) => {
+      if (err) {
+        return res.status(500).send({ error: 'Error calculating average rating' });
+      }
+
+      const avgRating = result[0].average_rating;
+      const updateTripRatingSql = 'UPDATE trip SET average_rating = ? WHERE id = ?';
+      db.query(updateTripRatingSql, [avgRating, trip_id], (err: any) => {
+        if (err) {
+          return res.status(500).send({ error: 'Error updating trip rating' });
+        }
+        res.send({ success: true });
+      });
+    });
+  });
+});
+
+// Get the average rating of a trip
+router.get("/rating/:trip_id", (req: any, res: any) => {
+  const tripId = req.params.trip_id;
+  const sql = 'SELECT average_rating FROM trip WHERE id = ?';
+
+  db.query(sql, [tripId], (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: 'Database query failed' });
+    }
+
+    if (result.length === 0) {
+      return res.status(404).send({ error: 'Trip not found' });
+    }
+
+    res.send({ average_rating: result[0].average_rating });
+  });
+});
+
+
+
 export default router;
+
+
+
+
+
+
+
+
+
+
+
