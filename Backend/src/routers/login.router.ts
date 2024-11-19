@@ -121,8 +121,13 @@ router.post("/login", (req, res) => {
       return res.status(400).send({ error: 'Invalid credentials' });
     }
 
+    // Check if the user is verified
+    if (user.isVerified !== 1) {
+      return res.status(400).send({ error: 'Please verify your email before logging in' });
+    }
+
     // Generate JWT token
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user.id, email: user.email, type: user.type }, JWT_SECRET, { expiresIn: '1h' });
 
     // Send the response with user data and token
     res.send({
@@ -131,13 +136,13 @@ router.post("/login", (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        type: user.type,
+        type: user.type, // Include the user type here
         nom: user.nom,
         prenom: user.prenom,
         telephone: user.telephone,
         cin: user.cin,
         isVerified: user.isVerified,
-      }
+      },
     });
   });
 });

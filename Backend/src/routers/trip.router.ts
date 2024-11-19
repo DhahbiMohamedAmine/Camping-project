@@ -166,6 +166,121 @@ router.get("/rating/:trip_id", (req: any, res: any) => {
   });
 });
 
+// Create a trip
+router.post("/create", (req: any, res: any) => {
+  const {
+    type,
+    lieu_depart,
+    lieu_destination,
+    date_depart,
+    date_destination,
+    prix,
+    nb_place,
+    description,
+    photo,
+  } = req.body;
+
+  if (
+    !type ||
+    !lieu_depart ||
+    !lieu_destination ||
+    !date_depart ||
+    !date_destination ||
+    !prix ||
+    !nb_place ||
+    !description ||
+    !photo
+  ) {
+    return res.status(400).send({ error: "All fields are required" });
+  }
+
+  const sql = `
+    INSERT INTO trip 
+    (type, lieu_depart, lieu_destination, date_depart, date_destination, prix, nb_place, description, photo, average_rating)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
+
+  const params = [
+    type,
+    lieu_depart,
+    lieu_destination,
+    date_depart,
+    date_destination,
+    prix,
+    nb_place,
+    description,
+    photo,
+  ];
+
+  db.query(sql, params, (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: "Database insertion failed" });
+    }
+    res.send({ message: "Trip created successfully", tripId: result.insertId });
+  });
+});
+
+
+// Update a trip
+router.put("/update/:id", (req: any, res: any) => {
+  const tripId = req.params.id;
+  const {
+    type,
+    lieu_depart,
+    lieu_destination,
+    date_depart,
+    date_destination,
+    prix,
+    nb_place,
+    description,
+    photo,
+  } = req.body;
+
+  const sql = `
+    UPDATE trip
+    SET type = ?, lieu_depart = ?, lieu_destination = ?, date_depart = ?, date_destination = ?, 
+        prix = ?, nb_place = ?, description = ?, photo = ?
+    WHERE id = ?`;
+
+  const params = [
+    type,
+    lieu_depart,
+    lieu_destination,
+    date_depart,
+    date_destination,
+    prix,
+    nb_place,
+    description,
+    photo,
+    tripId,
+  ];
+
+  db.query(sql, params, (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: "Database update failed" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: "Trip not found" });
+    }
+    res.send({ message: "Trip updated successfully" });
+  });
+});
+
+
+// Delete a trip
+router.delete("/delete/:id", (req: any, res: any) => {
+  const tripId = req.params.id;
+
+  const sql = "DELETE FROM trip WHERE id = ?";
+  db.query(sql, [tripId], (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: "Database deletion failed" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).send({ error: "Trip not found" });
+    }
+    res.send({ message: "Trip deleted successfully" });
+  });
+});
 
 
 export default router;

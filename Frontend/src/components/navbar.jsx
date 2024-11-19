@@ -15,6 +15,7 @@ export default function Navbar() {
     if (userData) {
       try {
         const parsedUserData = JSON.parse(userData);
+        console.log(parsedUserData); // Log to check the user data structure
         setIsLoggedIn(true);
         setUser(parsedUserData);
       } catch (error) {
@@ -60,12 +61,15 @@ export default function Navbar() {
               >
                 Logout
               </button>
-              <button
-                onClick={() => router.push(`/profile/${user.id}`)} // Redirect to user profile page
-                className="p-2 rounded-lg bg-white text-primaryGreen hover:bg-gray-100 transition duration-300"
-              >
-                <FaUserCircle size={24} /> {/* Display user icon */}
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => router.push(`/profile/${user.id}`)} // Redirect to user profile page
+                  className="p-2 rounded-lg bg-white text-primaryGreen hover:bg-gray-100 transition duration-300"
+                >
+                  <FaUserCircle size={24} /> {/* Display user icon */}
+                </button>
+                <span className="text-white font-semibold">{user?.prenom || "Guest"}</span> {/* Display username or fallback */}
+              </div>
             </>
           ) : (
             <>

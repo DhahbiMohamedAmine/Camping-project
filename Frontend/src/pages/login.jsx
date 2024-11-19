@@ -12,16 +12,15 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Form Validation
+  
     if (!email || !password) {
       setError("Email and password are required.");
       return;
     }
-
+  
     setLoading(true);
     setError(null);
-
+  
     try {
       const response = await fetch("http://localhost:3000/login", {
         method: "POST",
@@ -30,28 +29,32 @@ export default function Login() {
         },
         body: JSON.stringify({ email, password }),
       });
-
+  
+      const data = await response.json();
+  
       if (!response.ok) {
-        const data = await response.json();
         setError(data.error || "An error occurred.");
         setLoading(false);
         return;
       }
-
-      const data = await response.json();
+  
       if (data.message) {
-        // Save user data to localStorage
-        localStorage.setItem("user", JSON.stringify(data.user));  // Ensure user data exists here
-
-        // Save token to localStorage (optional)
+        localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("token", data.token);
-        router.push("/"); // Redirect to home/dashboard
+  
+        // Check user type and redirect
+        if (data.user.type === "organisateur") {
+          router.push("/organisateur-dashboard"); // Redirect organisateurs to their dashboard
+        } else {
+          router.push("/"); // Redirect other users to the home page
+        }
       }
     } catch (error) {
       setError("Server error: " + error.message);
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
