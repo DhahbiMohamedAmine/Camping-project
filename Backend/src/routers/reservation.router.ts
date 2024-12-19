@@ -186,6 +186,57 @@ router.get("/history/:userId", (req: any, res: any) => {
     res.send(result);
   });
 });
+router.post("/check", (req: any, res: any) => {
+  const { user_id, trip_id } = req.body;
 
+  if (!user_id || !trip_id) {
+    return res.status(400).send({ error: "User ID and Trip ID are required" });
+  }
+
+  const sql = 'SELECT * FROM reservation WHERE user_id = ? AND trip_id = ?';
+  db.query(sql, [user_id, trip_id], (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: 'Database query failed' });
+    }
+    res.send({ isRegistered: result.length > 0 });
+  });
+});
+
+// Cancel a reservation
+router.post("/cancel", (req: any, res: any) => {
+  const { user_id, trip_id } = req.body;
+
+  if (!user_id || !trip_id) {
+    return res.status(400).send({ error: "User ID and Trip ID are required" });
+  }
+
+  // First, check if the reservation exists
+  const checkSql = 'SELECT * FROM reservation WHERE user_id = ? AND trip_id = ?';
+  db.query(checkSql, [user_id, trip_id], (err: any, result: any) => {
+    if (err) {
+      return res.status(500).send({ error: 'Database query failed' });
+    }
+    if (result.length === 0) {
+      return res.status(404).send({ error: 'Reservation not found' });
+    }
+
+    // If reservation exists, proceed with cancellation
+    const cancelSql = 'DELETE FROM reservation WHERE user_id = ? AND trip_id = ?';
+    db.query(cancelSql, [user_id, trip_id], (err: any, deleteResult: any) => {
+      if (err) {
+        return res.status(500).send({ error: 'Failed to cancel reservation' });
+      }
+
+      // Update the number of available places for the trip
+      const updatePlacesSql = 'UPDATE trip SET nb_place = nb_place + 1 WHERE id = ?';
+      db.query(updatePlacesSql, [trip_id], (err: any, updateResult: any) => {
+        if (err) {
+          return res.status(500).send({ error: 'Failed to update trip places' });
+        }
+        res.send({ message: 'Reservation cancelled successfully' });
+      });
+    });
+  });
+});
 
 export default router;

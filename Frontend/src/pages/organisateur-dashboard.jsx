@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FiEdit, FiTrash, FiPlus, FiLogOut } from "react-icons/fi";
-import { useRouter } from "next/router";  // For redirecting after logout
+import { useRouter } from "next/router"; // For redirecting after logout
 import '../app/globals.css';
 
 const OrganisateurDashboard = () => {
@@ -57,7 +57,12 @@ const OrganisateurDashboard = () => {
   const updateTrip = async () => {
     try {
       setLoading(true);
-      await axios.put(`http://localhost:3000/trip/update/${selectedTrip.id}`, formData);
+      const updateData = {
+        nb_place: formData.nb_place,
+        description: formData.description,
+        photo: formData.photo,
+      };
+      await axios.put(`http://localhost:3000/trip/update/${selectedTrip.id}`, updateData);
       fetchTrips();
       setSelectedTrip(null);
       setFormData({});
@@ -84,11 +89,8 @@ const OrganisateurDashboard = () => {
 
   // Logout functionality
   const handleLogout = () => {
-    // Clear user session data
-    localStorage.removeItem("userToken"); // Replace with your token key
-    sessionStorage.removeItem("userToken"); // Optional: also remove from sessionStorage
-
-    // Redirect to the login page
+    localStorage.removeItem("userToken");
+    sessionStorage.removeItem("userToken"); // Optional
     router.push("/login"); // Change the route to your login page
   };
 
@@ -101,6 +103,26 @@ const OrganisateurDashboard = () => {
   useEffect(() => {
     fetchTrips();
   }, []);
+
+  // Define editable fields for the update form
+  const editableFields = [
+    { name: "nb_place", label: "Number of Places" },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "photo", label: "Photo URL" },
+  ];
+
+  // Define all fields for the create form
+  const createFields = [
+    { name: "type", label: "Type of Trip" },
+    { name: "lieu_depart", label: "Lieu de Départ" },
+    { name: "lieu_destination", label: "Lieu de Destination" },
+    { name: "date_depart", label: "Date de Départ", type: "date" },
+    { name: "date_destination", label: "Date de Destination", type: "date" },
+    { name: "prix", label: "Price (DT)" },
+    { name: "nb_place", label: "Number of Places" },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "photo", label: "Photo URL" },
+  ];
 
   return (
     <div className="p-6 bg-gradient-to-r from-blue-100 to-purple-200 min-h-screen">
@@ -152,20 +174,17 @@ const OrganisateurDashboard = () => {
                 <button
                   onClick={() => {
                     setSelectedTrip(trip);
-                    setFormData(trip);
+                    setFormData({
+                      nb_place: trip.nb_place,
+                      description: trip.description,
+                      photo: trip.photo,
+                    });
                     setShowForm(true);
                   }}
                   className="text-blue-500 flex items-center gap-2 hover:text-blue-700"
                 >
                   <FiEdit />
                   Edit
-                </button>
-                <button
-                  onClick={() => deleteTrip(trip.id)}
-                  className="text-red-500 flex items-center gap-2 hover:text-red-700"
-                >
-                  <FiTrash />
-                  Delete
                 </button>
               </div>
             </div>
@@ -185,17 +204,7 @@ const OrganisateurDashboard = () => {
                 selectedTrip ? updateTrip() : createTrip();
               }}
             >
-              {[
-                { name: "type", label: "Type of Trip" },
-                { name: "lieu_depart", label: "Lieu de Départ" },
-                { name: "lieu_destination", label: "Lieu de Destination" },
-                { name: "date_depart", label: "Date de Départ", type: "date" },
-                { name: "date_destination", label: "Date de Destination", type: "date" },
-                { name: "prix", label: "Price (DT)" },
-                { name: "nb_place", label: "Number of Places" },
-                { name: "description", label: "Description", type: "textarea" },
-                { name: "photo", label: "Photo URL" },
-              ].map(({ name, label, type = "text" }) => (
+              {(selectedTrip ? editableFields : createFields).map(({ name, label, type = "text" }) => (
                 <div key={name} className="col-span-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {label}

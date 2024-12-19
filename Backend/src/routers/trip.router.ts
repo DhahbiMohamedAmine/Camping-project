@@ -180,20 +180,12 @@ router.post("/create", (req: any, res: any) => {
     photo,
   } = req.body;
 
-  if (
-    !type ||
-    !lieu_depart ||
-    !lieu_destination ||
-    !date_depart ||
-    !date_destination ||
-    !prix ||
-    !nb_place ||
-    !description ||
-    !photo
-  ) {
-    return res.status(400).send({ error: "All fields are required" });
+  // Validate required fields
+  if (!type || !lieu_depart || !lieu_destination) {
+    return res.status(400).json({ error: "Type, Lieu Depart, and Lieu Destination are required" });
   }
 
+  // SQL query with optional fields for date_depart, date_destination, prix, nb_place, description, photo
   const sql = `
     INSERT INTO trip 
     (type, lieu_depart, lieu_destination, date_depart, date_destination, prix, nb_place, description, photo, average_rating)
@@ -203,19 +195,20 @@ router.post("/create", (req: any, res: any) => {
     type,
     lieu_depart,
     lieu_destination,
-    date_depart,
-    date_destination,
-    prix,
-    nb_place,
-    description,
-    photo,
+    date_depart || null,
+    date_destination || null,
+    prix ? parseFloat(prix) : null, // Ensure prix is a number or null
+    nb_place ? parseInt(nb_place, 10) : null, // Ensure nb_place is an integer or null
+    description || null,
+    photo || null,
   ];
 
   db.query(sql, params, (err: any, result: any) => {
     if (err) {
-      return res.status(500).send({ error: "Database insertion failed" });
+      console.error("Database insertion error:", err);
+      return res.status(500).json({ error: "Database insertion failed", details: err.message });
     }
-    res.send({ message: "Trip created successfully", tripId: result.insertId });
+    res.json({ message: "Trip created successfully", tripId: result.insertId });
   });
 });
 
@@ -223,36 +216,15 @@ router.post("/create", (req: any, res: any) => {
 // Update a trip
 router.put("/update/:id", (req: any, res: any) => {
   const tripId = req.params.id;
-  const {
-    type,
-    lieu_depart,
-    lieu_destination,
-    date_depart,
-    date_destination,
-    prix,
-    nb_place,
-    description,
-    photo,
-  } = req.body;
+  const { nb_place, description, photo } = req.body;
 
+  // Build dynamic SQL query
   const sql = `
     UPDATE trip
-    SET type = ?, lieu_depart = ?, lieu_destination = ?, date_depart = ?, date_destination = ?, 
-        prix = ?, nb_place = ?, description = ?, photo = ?
+    SET nb_place = ?, description = ?, photo = ?
     WHERE id = ?`;
 
-  const params = [
-    type,
-    lieu_depart,
-    lieu_destination,
-    date_depart,
-    date_destination,
-    prix,
-    nb_place,
-    description,
-    photo,
-    tripId,
-  ];
+  const params = [nb_place, description, photo, tripId];
 
   db.query(sql, params, (err: any, result: any) => {
     if (err) {
@@ -266,21 +238,44 @@ router.put("/update/:id", (req: any, res: any) => {
 });
 
 
+
 // Delete a trip
-router.delete("/delete/:id", (req: any, res: any) => {
+// Delete a trip and associated ratings
+router.delete("/delete/:id", (req, res) => {
   const tripId = req.params.id;
 
-  const sql = "DELETE FROM trip WHERE id = ?";
-  db.query(sql, [tripId], (err: any, result: any) => {
+  // First, check if there are any ratings for the trip
+  const checkRatingsSql = "SELECT COUNT(*) AS count FROM ratings WHERE trip_id = ?";
+  db.query(checkRatingsSql, [tripId], (err: any, result: any) => {
     if (err) {
-      return res.status(500).send({ error: "Database deletion failed" });
+      return res.status(500).send({ error: "Database query failed" });
     }
-    if (result.affectedRows === 0) {
-      return res.status(404).send({ error: "Trip not found" });
+
+    if (result[0].count > 0) {
+      // If there are ratings, remove them first
+      const deleteRatingsSql = "DELETE FROM ratings WHERE trip_id = ?";
+      db.query(deleteRatingsSql, [tripId], (err: any) => {
+        if (err) {
+          return res.status(500).send({ error: "Failed to delete ratings" });
+        }
+
+        // After deleting ratings, proceed with deleting the trip
+        const deleteTripSql = "DELETE FROM trip WHERE id = ?";
+        db.query(deleteTripSql, [tripId], (err: any, result: any) => {
+          if (err) {
+            return res.status(500).send({ error: "Database deletion failed" });
+          }
+          if (result.affectedRows === 0) {
+            return res.status(404).send({ error: "Trip not found" });
+          }
+          res.send({ message: "Trip and associated ratings deleted successfully" });
+        });
+      });
     }
-    res.send({ message: "Trip deleted successfully" });
   });
 });
+
+
 
 
 export default router;

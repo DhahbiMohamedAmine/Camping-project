@@ -224,5 +224,27 @@ router.post("/reset-password", async (req, res) => {
   });
 });
 
+// Send support message
+router.post("/support", async (req, res) => {
+  const { email, message } = req.body;
+
+  if (!email || !message) {
+    return res.status(400).send({ error: "Email and message are required" });
+  }
+
+  const mailOptions = {
+    from: 'dhahbimohamedaminef175@gmail.com',
+    to: 'hamadhahbi2020@gmail.com', // Support email
+    subject: 'Client Support Request',
+    html: `<p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong> ${message}</p>`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return res.status(500).send({ error: 'Failed to send support request: ' + error });
+    }
+    res.send({ message: 'Your message has been sent successfully!' });
+  });
+});
 
 export default router;

@@ -72,7 +72,7 @@ const ReservationHistory = () => {
               key={reservation.reservation_id}
               className="p-6 bg-gray-50 rounded-lg shadow-md border border-gray-200"
             >
-              <h2 className="text-xl font-semibold text-primaryGreen mb-2">Trip ID: {reservation.trip_id}</h2>
+              <h2 className="text-xl font-semibold text-primaryGreen mb-2">Trip Location: {reservation.lieu_destination}</h2>
               <p className="text-gray-700">Reservation Date: {new Date(reservation.date_reservation).toLocaleDateString()}</p>
               <p className="text-gray-700">Status: <span className={`font-semibold ${reservation.status === "Confirmed" ? "text-green-500" : "text-red-500"}`}>{reservation.status}</span></p>
               <p className="text-gray-700">Departure: {reservation.lieu_depart} → {reservation.lieu_destination}</p>

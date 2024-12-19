@@ -13,6 +13,7 @@ import userRouter from './routers/user.router';
 import loginRouter from './routers/login.router';
 import tripRouter from './routers/trip.router';
 import reservationRouter from './routers/reservation.router';
+import paymentRouter from './routers/payment.router';
 const mysql = require('mysql');
 
 export const db = mysql.createConnection({
@@ -26,7 +27,7 @@ db.connect((err: Error ) => {
   if (err) {
     throw err;
   }
-  console.log('Oracle connected ..');
+  console.log('database connected ..');
 });
 
 app.listen(3000, () => {
@@ -38,3 +39,4 @@ app.use("/user",userRouter)
 app.use("/",loginRouter)
 app.use("/trip",tripRouter)
 app.use("/reservation",reservationRouter)
+app.use("/payment",paymentRouter)

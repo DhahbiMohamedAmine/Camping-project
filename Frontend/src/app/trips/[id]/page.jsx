@@ -1,8 +1,18 @@
-'use client';
-
+"use client";
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from 'next/navigation';
-import { FaMapMarkerAlt, FaPlane, FaCalendarAlt, FaMoneyBillWave, FaStar, FaStarHalfAlt, FaRegStar } from "react-icons/fa";
+import { useParams, useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  FaMapMarkerAlt,
+  FaPlane,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaStar,
+  FaStarHalfAlt,
+  FaRegStar,
+} from "react-icons/fa";
+
+const stripePromise = loadStripe("pk_test_51PG3uWClavGSdaZ6aZMjF4SQtCjlKDIWWKtqWFTwyS1yYSO0VI5Oc6wLVn5zk1z27NiqBuyBNDlpanv6dJlQyvjt007bkgZHqS");
 
 export default function TripDetailsPage() {
   const params = useParams();
@@ -44,6 +54,29 @@ export default function TripDetailsPage() {
     }
   }, [id]);
 
+  const checkRegistration = useCallback(async () => {
+    if (user && id) {
+      try {
+        const response = await fetch(`http://localhost:3000/reservation/check`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            trip_id: id,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsRegistered(data.isRegistered);
+        }
+      } catch (error) {
+        console.error('Error checking registration:', error);
+      }
+    }
+  }, [user, id]);
+
   useEffect(() => {
     if (id) {
       const fetchTripDetails = async () => {
@@ -52,7 +85,7 @@ export default function TripDetailsPage() {
           if (response.ok) {
             const data = await response.json();
             setTrip(data);
-            fetchAverageRating(); // Fetch rating after trip details
+            fetchAverageRating();
           } else {
             console.error("Failed to fetch trip details");
           }
@@ -66,22 +99,10 @@ export default function TripDetailsPage() {
   }, [id, fetchAverageRating]);
 
   useEffect(() => {
-    if (user && trip) {
-      const fetchUserRating = async () => {
-        try {
-          const response = await fetch(`http://localhost:3000/trip/ratings/${trip.id}/${user.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUserRating(data.rating || 0);
-          }
-        } catch (error) {
-          console.error("Error fetching user rating:", error);
-        }
-      };
-
-      fetchUserRating();
+    if (user && id) {
+      checkRegistration();
     }
-  }, [user, trip]);
+  }, [user, id, checkRegistration]);
 
   const handleRating = async (ratingValue) => {
     if (!user) {
@@ -104,7 +125,7 @@ export default function TripDetailsPage() {
 
       if (response.ok) {
         setUserRating(ratingValue);
-        await fetchAverageRating(); // Fetch the updated average rating
+        await fetchAverageRating();
       } else {
         const errorData = await response.json();
         alert(errorData.error || "Failed to submit rating.");
@@ -134,92 +155,64 @@ export default function TripDetailsPage() {
       alert("You must be logged in to register for a trip.");
       return;
     }
-
+  
     try {
-      const reservationData = {
-        user_id: user.id,
-        trip_id: trip.id,
-        date_reservation: new Date().toISOString(),
-        status: "Pending", // You can modify this as per your system
-      };
-
-      const response = await fetch("http://localhost:3000/reservation/create", {
+      const response = await fetch("http://localhost:3000/payment/create-checkout-session", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(reservationData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripId: trip.id,
+          userId: user.id,
+          price: trip.prix,
+        }),
       });
-
-      const result = await response.json();
-      if (response.ok) {
-        setIsRegistered(true);
-      } else {
-        alert(result.error || "Failed to register for the trip.");
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to create checkout session.");
+        return;
+      }
+  
+      const { sessionId } = await response.json();
+      const stripe = await stripePromise;
+      
+      const result = await stripe.redirectToCheckout({ sessionId });
+  
+      if (result.error) {
+        alert(result.error.message);
       }
     } catch (error) {
-      console.error("Error registering for trip:", error);
-      alert("There was an error registering for the trip.");
+      console.error("Error during checkout:", error);
+      alert("There was an error processing your payment.");
     }
   };
 
-
-  useEffect(() => {
-    if (user && trip) {
-      const checkRegistration = async () => {
-        try {
-          const response = await fetch(`http://localhost:3000/reservation/get`, {
-            method: "GET",
-          });
-          const reservations = await response.json();
-          const userReservation = reservations.find(
-            (reservation) => reservation.user_id === user.id && reservation.trip_id === trip.id
-          );
-          setIsRegistered(!!userReservation);
-        } catch (error) {
-          console.error("Error checking registration:", error);
-        }
-      };
-
-      checkRegistration();
-    }
-  }, [user, trip]);
-
-
   const handleCancel = async () => {
-    if (!user || !trip) return;
+    if (!user || !trip) {
+      alert("Unable to cancel registration at this time.");
+      return;
+    }
 
     try {
-      // Fetch reservations for the current trip
-      const response = await fetch(`http://localhost:3000/reservation/get`);
-      const reservations = await response.json();
+      const response = await fetch("http://localhost:3000/reservation/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          trip_id: trip.id,
+        }),
+      });
 
-      // Find the reservation for the current user and trip
-      const userReservation = reservations.find(
-        (reservation) => reservation.user_id === user.id && reservation.trip_id === trip.id
-      );
-
-      if (userReservation) {
-        // Delete the reservation based on its ID
-        const deleteResponse = await fetch(
-          `http://localhost:3000/reservation/delete/${userReservation.id}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        if (deleteResponse.ok) {
-          setIsRegistered(false);
-        } else {
-          const errorData = await deleteResponse.json();
-          alert(errorData.error || "Failed to cancel the reservation.");
-        }
+      if (response.ok) {
+        setIsRegistered(false);
+        alert("Your registration has been cancelled.");
       } else {
-        alert("No reservation found for this trip.");
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to cancel registration.");
       }
     } catch (error) {
-      console.error("Error canceling reservation:", error);
-      alert("There was an error canceling your reservation.");
+      console.error("Error cancelling registration:", error);
+      alert("There was an error cancelling your registration.");
     }
   };
 
@@ -239,9 +232,9 @@ export default function TripDetailsPage() {
           className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"
           style={{
             backgroundImage: `url(${trip.photo || "https://via.placeholder.com/150"})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         >
           <h1 className="text-white text-3xl sm:text-4xl md:text-5xl font-bold text-center p-4">
@@ -276,7 +269,9 @@ export default function TripDetailsPage() {
               <FaCalendarAlt className="text-primaryGreen text-2xl" />
               <div>
                 <strong className="block text-gray-800">Departure Date:</strong>
-                <span className="text-gray-600">{new Date(trip.date_depart).toLocaleDateString()}</span>
+                <span className="text-gray-600">
+                  {new Date(trip.date_depart).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
@@ -317,29 +312,24 @@ export default function TripDetailsPage() {
             )}
           </div>
 
-          {/* Register and Cancel Buttons */}
+          {/* Register/Cancel Button */}
           <div className="text-center space-y-6">
-            {/* Register Button */}
-            {!isRegistered ? (
+            {isRegistered ? (
+              <button
+                onClick={handleCancel}
+                className="w-full sm:w-auto px-6 py-3 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition duration-300 ease-in-out transform hover:scale-105"
+              >
+                Annuler
+              </button>
+            ) : (
               <button
                 onClick={handleRegister}
                 className="w-full sm:w-auto px-6 py-3 rounded-md bg-primaryGreen text-white font-semibold hover:bg-primaryGreenDark transition duration-300 ease-in-out transform hover:scale-105"
               >
                 Register for this trip
               </button>
-            ) : (
-              <div className="w-full sm:w-auto space-y-2">
-                <p className="text-lg text-gray-600 mb-2">You are already registered for this trip.</p>
-                <button
-                  onClick={handleCancel}
-                  className="w-full sm:w-auto px-6 py-3 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition duration-300 ease-in-out transform hover:scale-105"
-                >
-                  Cancel Reservation
-                </button>
-              </div>
             )}
 
-            {/* Back to Trips Button */}
             <button
               onClick={() => router.back()}
               className="w-full sm:w-auto px-6 py-3 rounded-md bg-primaryGreen text-white font-semibold hover:bg-primaryGreenDark transition duration-300 ease-in-out transform hover:scale-105"
@@ -352,3 +342,4 @@ export default function TripDetailsPage() {
     </div>
   );
 }
+

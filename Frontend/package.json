@@ -11,6 +11,7 @@
   "dependencies": {
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.25.9",
+    "@stripe/stripe-js": "^5.2.0",
     "axios": "^1.7.7",
     "next": "^15.0.3",
     "react": "^19.0.0-rc-69d4b800-20241021",

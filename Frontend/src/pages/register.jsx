@@ -9,7 +9,7 @@ export default function Register() {
   const [prenom, setPrenom] = useState("");
   const [email, setEmail] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [cin, setCin] = useState("");
+  const [cin, setCin] = useState("00000000");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);  // For error messages
   const [loading, setLoading] = useState(false);
@@ -116,18 +116,6 @@ export default function Register() {
             />
           </div>
 
-          <div>
-            <label htmlFor="cin" className="block text-sm font-medium text-gray-700">CIN</label>
-            <input
-              type="text"
-              id="cin"
-              value={cin}
-              onChange={(e) => setCin(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-2 mt-1"
-              placeholder="Enter your CIN"
-              required
-            />
-          </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>

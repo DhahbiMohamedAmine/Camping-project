@@ -1,8 +1,8 @@
-"use client";
+'use client';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FaUserCircle } from "react-icons/fa"; // Import the user icon from react-icons
+import { FaUserCircle, FaQuestionCircle } from "react-icons/fa"; // Corrected import
 
 export default function Navbar() {
   const router = useRouter();
@@ -41,8 +41,18 @@ export default function Navbar() {
 
       {/* Navbar Section */}
       <div className="bg-primaryGreen w-full p-2 flex items-center justify-between">
-        {/* Historique Button */}
-        <div className="flex items-center">
+        {/* Flex container for buttons */}
+        <div className="flex items-center space-x-4">
+          {/* Support Button */}
+          <button
+            onClick={() => router.push("/support")}
+            className="flex items-center text-white px-2 hover:underline"
+          >
+            <FaQuestionCircle size={20} className="mr-1" /> {/* Support Icon */}
+            Support Client
+          </button>
+
+          {/* Historique Button */}
           <button
             onClick={() => router.push("/historique-reservation")}
             className="flex items-center text-white px-2 hover:underline"
